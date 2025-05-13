@@ -1,0 +1,71 @@
+import cv2
+import mediapipe as mp
+import pygame
+import time
+import os
+
+# Initialize Pygame mixer
+pygame.mixer.init()
+snare = pygame.mixer.Sound("sounds/snare.wav")
+kick = pygame.mixer.Sound("sounds/kick.wav")
+hihat = pygame.mixer.Sound("sounds/hihat.wav")
+
+# MediaPipe hand model
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+mp_draw = mp.solutions.drawing_utils
+
+# OpenCV camera
+cap = cv2.VideoCapture(0)
+last_played = {"snare": 0, "kick": 0, "hihat": 0}
+cooldown = 0.5  # seconds
+
+while cap.isOpened():
+    success, frame = cap.read()
+    if not success:
+        break
+
+    frame = cv2.flip(frame, 1)
+    h, w, _ = frame.shape
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = hands.process(rgb)
+
+    # Draw buttons
+    cv2.rectangle(frame, (50, 100), (200, 250), (255, 0, 0), 2)
+    cv2.putText(frame, "Snare", (70, 230), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+
+    cv2.rectangle(frame, (250, 100), (400, 250), (0, 255, 0), 2)
+    cv2.putText(frame, "Kick", (270, 230), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+
+    cv2.rectangle(frame, (450, 100), (600, 250), (0, 0, 255), 2)
+    cv2.putText(frame, "HiHat", (470, 230), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            x = int(hand_landmarks.landmark[8].x * w)
+            y = int(hand_landmarks.landmark[8].y * h)
+
+            cv2.circle(frame, (x, y), 10, (255, 255, 255), -1)
+
+            now = time.time()
+
+            if 50 < x < 200 and 100 < y < 250 and now - last_played["snare"] > cooldown:
+                snare.play()
+                last_played["snare"] = now
+
+            elif 250 < x < 400 and 100 < y < 250 and now - last_played["kick"] > cooldown:
+                kick.play()
+                last_played["kick"] = now
+
+            elif 450 < x < 600 and 100 < y < 250 and now - last_played["hihat"] > cooldown:
+                hihat.play()
+                last_played["hihat"] = now
+
+            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+    cv2.imshow("Virtual Drum Kit", frame)
+    if cv2.waitKey(1) & 0xFF == 27:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
