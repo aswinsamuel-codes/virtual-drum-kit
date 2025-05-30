@@ -1,8 +1,1 @@
-virtual-drum-kit/
-├── virtual_drum_kit.py
-├── sounds/
-│   ├── snare.wav
-│   ├── kick.wav
-│   └── hihat.wav
-├── requirements.txt
-└── README.md
+
